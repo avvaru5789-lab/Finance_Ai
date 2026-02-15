@@ -4,7 +4,7 @@ Savings Strategy Agent - Creates emergency fund and savings strategies.
 
 from typing import Dict, Any, Type
 from pydantic import BaseModel
-from langgraph.schemas import SavingsStrategyOutput
+from finance_agents.schemas import SavingsStrategyOutput
 from .base_agent import BaseAgent
 
 

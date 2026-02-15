@@ -4,7 +4,7 @@ Risk Scoring Agent - Calculates overall financial health and risk score.
 
 from typing import Dict, Any, Type, Optional
 from pydantic import BaseModel
-from langgraph.schemas import RiskScoreOutput, DebtAnalysisOutput, SavingsStrategyOutput
+from finance_agents.schemas import RiskScoreOutput, DebtAnalysisOutput, SavingsStrategyOutput
 from .base_agent import BaseAgent
 
 

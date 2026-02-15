@@ -2,8 +2,8 @@
 Agent output schemas for debt, savings, budget, and risk analysis.
 """
 
-from typing import List, Dict, Optional, Any
-from pydantic import BaseModel, Field
+from typing import List, Dict, Optional
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class DebtAnalysisOutput(BaseModel):
@@ -49,6 +49,7 @@ class DebtAnalysisOutput(BaseModel):
 
 class SavingsStrategyOutput(BaseModel):
     """Output from Savings Strategy Agent."""
+    model_config = ConfigDict(extra="forbid")
     
     # Current State
     monthly_savings_capacity: float
@@ -58,7 +59,6 @@ class SavingsStrategyOutput(BaseModel):
     # Strategy
     emergency_fund_target: float = Field(ge=0.0)
     monthly_savings_goal: float = Field(ge=0.0)
-    savings_allocation: Dict[str, float] = Field(default_factory=dict)  # emergency, investments, goals
     
     # Timeline
     months_to_emergency_fund: int = Field(ge=0)
@@ -66,40 +66,24 @@ class SavingsStrategyOutput(BaseModel):
     # Recommendations
     recommendations: List[str]
     challenges: List[str] = Field(default_factory=list)
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "monthly_savings_capacity": 1200.00,
-                "emergency_fund_gap": 9000.00,
-                "current_savings_rate": 24.0,
-                "emergency_fund_target": 15000.00,
-                "monthly_savings_goal": 1000.00,
-                "savings_allocation": {
-                    "emergency": 800.00,
-                    "investments": 200.00,
-                    "goals": 200.00
-                },
-                "months_to_emergency_fund": 12,
-                "recommendations": [
-                    "Automate $1000 monthly transfer to savings",
-                    "Build emergency fund to $15K (6 months expenses)"
-                ],
-                "challenges": []
-            }
-        }
+
+
+class OptimizationOpportunity(BaseModel):
+    """A single budget optimization opportunity."""
+    model_config = ConfigDict(extra="forbid")
+    category: str
+    current: float
+    recommended: float
+    savings: float
 
 
 class BudgetOutput(BaseModel):
     """Output from Budget Optimizer Agent."""
+    model_config = ConfigDict(extra="forbid")
     
     # Spending Analysis
     overspending_categories: List[str] = Field(default_factory=list)
-    optimization_opportunities: List[Dict[str, Any]] = Field(default_factory=list)
-    
-    # Recommended Budget
-    recommended_budget: Dict[str, float] = Field(default_factory=dict)  # category → amount
-    current_vs_recommended: Dict[str, Dict[str, float]] = Field(default_factory=dict)
+    optimization_opportunities: List[OptimizationOpportunity] = Field(default_factory=list)
     
     # Savings Potential
     monthly_savings_potential: float = Field(ge=0.0)
@@ -108,37 +92,6 @@ class BudgetOutput(BaseModel):
     # Recommendations
     recommendations: List[str]
     quick_wins: List[str] = Field(default_factory=list)  # Easy changes
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "overspending_categories": ["Dining", "Entertainment"],
-                "optimization_opportunities": [
-                    {
-                        "category": "Subscriptions",
-                        "current": 150.00,
-                        "recommended": 50.00,
-                        "savings": 100.00
-                    }
-                ],
-                "recommended_budget": {
-                    "Food": 600.00,
-                    "Transportation": 300.00,
-                    "Entertainment": 200.00
-                },
-                "current_vs_recommended": {
-                    "Dining": {"current": 800.00, "recommended": 400.00}
-                },
-                "monthly_savings_potential": 450.00,
-                "annual_savings_potential": 5400.00,
-                "recommendations": [
-                    "Reduce dining out from $800 to $400/month"
-                ],
-                "quick_wins": [
-                    "Cancel unused subscriptions ($100/mo savings)"
-                ]
-            }
-        }
 
 
 class RiskScoreOutput(BaseModel):

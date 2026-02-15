@@ -17,7 +17,7 @@ from langgraph.agents import (
     BudgetOptimizerAgent,
     RiskScorerAgent
 )
-from langgraph.schemas import DebtAccount, Transaction, create_initial_state
+from finance_agents.schemas import DebtAccount, Transaction, create_initial_state
 
 
 # Get API key from environment

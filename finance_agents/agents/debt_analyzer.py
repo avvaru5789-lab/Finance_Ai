@@ -4,7 +4,7 @@ Debt Analyzer Agent - Analyzes debt and creates payoff strategies.
 
 from typing import Dict, Any, Type, List
 from pydantic import BaseModel
-from langgraph.schemas import DebtAnalysisOutput, DebtAccount
+from finance_agents.schemas import DebtAnalysisOutput, DebtAccount
 from .base_agent import BaseAgent
 
 

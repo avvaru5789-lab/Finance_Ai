@@ -20,6 +20,12 @@ from .agents import (
     RiskScorerAgent,
 )
 
+from .workflow import (
+    analyze_finances,
+    analyze_finances_streaming,
+    create_financial_analysis_graph,
+)
+
 __all__ = [
     # Schemas
     "Transaction",
@@ -37,4 +43,8 @@ __all__ = [
     "SavingsStrategyAgent",
     "BudgetOptimizerAgent",
     "RiskScorerAgent",
+    # Workflow
+    "analyze_finances",
+    "analyze_finances_streaming",
+    "create_financial_analysis_graph",
 ]

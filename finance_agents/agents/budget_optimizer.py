@@ -4,7 +4,7 @@ Budget Optimizer Agent - Identifies spending issues and optimization opportuniti
 
 from typing import Dict, Any, Type, List
 from pydantic import BaseModel
-from langgraph.schemas import BudgetOutput, Transaction
+from finance_agents.schemas import BudgetOutput, Transaction
 from .base_agent import BaseAgent
 
 
