@@ -1,7 +1,6 @@
 # ============================================
 # AI Financial Coach - Python Dependencies
 # ============================================
-# Using flexible versions to avoid dependency conflicts
 
 # Core Web Framework
 fastapi>=0.115.0
@@ -21,15 +20,14 @@ langgraph>=0.2.40
 langchain>=0.3.0
 langchain-core>=0.3.0
 langchain-openai>=0.2.0
+langchain-community>=0.3.0  # Required by PaddleOCR
 
 # LLM API
 openai>=1.50.0
 
-# DeepSeek-OCR & ML Dependencies
-transformers>=4.46.0
-torch>=2.5.0
-torchvision>=0.20.0
-sentencepiece>=0.2.0
+# OCR - PaddleOCR
+paddlepaddle>=2.6.0
+paddleocr>=2.7.0
 protobuf
 
 # PDF Processing

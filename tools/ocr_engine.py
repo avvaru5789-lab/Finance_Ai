@@ -1,46 +1,49 @@
 """
-OCR Engine using DeepSeek-OCR for PDF and image processing.
+OCR Engine using Docker PaddleOCR service for PDF and image processing.
 Extracts text and tables from financial documents.
 """
 
 import os
-from typing import List, Dict, Optional, Tuple
+import httpx
+from typing import List, Dict, Optional
 from pathlib import Path
 from loguru import logger
 from PIL import Image
-import torch
+import io
 
 # PDF processing
 from pdf2image import convert_from_path
 import pdfplumber
 
-from models.deepseek_loader import deepseek_loader
-
 
 class OCREngine:
-    """Handles OCR extraction from PDFs and images using DeepSeek-OCR."""
+    """Handles OCR extraction from PDFs and images using Docker PaddleOCR service."""
     
-    def __init__(self):
-        """Initialize OCR engine with DeepSeek model."""
-        self.model = None
-        self.tokenizer = None
-        self.device = None
-        self._initialized = False
+    def __init__(self, ocr_service_url: str = "http://localhost:8001"):
+        """
+        Initialize OCR engine.
+        
+        Args:
+            ocr_service_url: URL of Docker OCR service
+        """
+        self.ocr_service_url = ocr_service_url
+        self._service_available = None
     
-    def initialize(self) -> None:
-        """Load DeepSeek-OCR model (lazy loading)."""
-        if self._initialized:
-            return
+    def _check_ocr_service(self) -> bool:
+        """Check if Docker OCR service is available."""
+        if self._service_available is not None:
+            return self._service_available
         
         try:
-            logger.info("Initializing DeepSeek-OCR model...")
-            self.model, self.tokenizer = deepseek_loader.load_model()
-            self.device = deepseek_loader.get_device()
-            self._initialized = True
-            logger.info(f"OCR engine initialized on {self.device}")
+            response = httpx.get(f"{self.ocr_service_url}/health", timeout=2.0)
+            self._service_available = response.status_code == 200
+            if self._service_available:
+                logger.info("✅ Docker OCR service is available")
+            return self._service_available
         except Exception as e:
-            logger.error(f"Failed to initialize OCR engine: {e}")
-            raise
+            logger.warning(f"Docker OCR service not available: {e}")
+            self._service_available = False
+            return False
     
     def extract_from_pdf(self, pdf_path: str) -> Dict[str, any]:
         """
@@ -52,8 +55,6 @@ class OCREngine:
         Returns:
             Dictionary with extracted text, tables, and metadata
         """
-        self.initialize()
-        
         logger.info(f"Processing PDF: {pdf_path}")
         
         # Try pdfplumber first for text-based PDFs (faster)
@@ -70,9 +71,19 @@ class OCREngine:
         except Exception as e:
             logger.warning(f"pdfplumber extraction failed: {e}")
         
-        # Fallback to DeepSeek-OCR for scanned PDFs
-        logger.info("Using DeepSeek-OCR for image-based PDF")
-        return self._extract_with_deepseek_ocr(pdf_path)
+        # Fallback to Docker OCR service for scanned PDFs
+        if self._check_ocr_service():
+            logger.info("Using Docker PaddleOCR service for image-based PDF")
+            return self._extract_with_docker_ocr(pdf_path)
+        else:
+            logger.error("Docker OCR service unavailable and pdfplumber failed")
+            return {
+                "method": "failed",
+                "text": "",
+                "pages": self._count_pages(pdf_path),
+                "tables": [],
+                "error": "OCR service unavailable"
+            }
     
     def _extract_with_pdfplumber(self, pdf_path: str) -> str:
         """Extract text using pdfplumber (for text-based PDFs)."""
@@ -98,67 +109,69 @@ class OCREngine:
         
         return all_tables
     
-    def _extract_with_deepseek_ocr(self, pdf_path: str) -> Dict[str, any]:
+    def _extract_with_docker_ocr(self, pdf_path: str) -> Dict[str, any]:
         """
-        Extract text using DeepSeek-OCR (for scanned/image-based PDFs).
+        Extract text using Docker PaddleOCR service (for scanned/image-based PDFs).
         
-        This is slower but works on scanned documents.
+        This converts PDF to images and sends to Docker service.
         """
         # Convert PDF pages to images
         images = convert_from_path(pdf_path, dpi=200)
         
         all_text = []
-        all_tables = []
+        all_detections = []
         
         for i, image in enumerate(images):
-            logger.info(f"Processing page {i+1}/{len(images)} with DeepSeek-OCR")
+            logger.info(f"Processing page {i+1}/{len(images)} with Docker OCR")
             
-            # Run OCR on the image
-            page_text = self._ocr_image(image)
+            # Run OCR via Docker service
+            page_text, detections = self._ocr_image_via_docker(image)
             all_text.append(page_text)
-            
-            # TODO: Implement table detection with DeepSeek-OCR
-            # For now, we'll extract tables in the table_extractor.py
+            all_detections.extend(detections)
         
         return {
-            "method": "deepseek_ocr",
+            "method": "docker_paddleocr",
             "text": "\n\n".join(all_text),
             "pages": len(images),
-            "tables": all_tables,
+            "tables": [],  # Table extraction handled by table_extractor
+            "detections": all_detections
         }
     
-    def _ocr_image(self, image: Image.Image) -> str:
+    def _ocr_image_via_docker(self, image: Image.Image) -> tuple[str, List[dict]]:
         """
-        Run DeepSeek-OCR on a single image.
+        Run OCR on a single image via Docker service.
         
         Args:
             image: PIL Image object
             
         Returns:
-            Extracted text
+            Tuple of (extracted_text, detections)
         """
         try:
-            # Prepare image for DeepSeek-OCR
-            # Note: DeepSeek-OCR API may vary - adjust based on actual model
+            # Convert PIL Image to bytes
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format='PNG')
+            img_byte_arr.seek(0)
             
-            # Convert PIL image to tensor
-            # This is a simplified version - adjust based on DeepSeek-OCR's actual API
+            # Send to Docker OCR service
+            files = {"file": ("image.png", img_byte_arr, "image/png")}
             
-            # For now, use a placeholder since we don't have the exact DeepSeek-OCR API
-            # You'll need to check the HuggingFace model card for the correct usage
+            response = httpx.post(
+                f"{self.ocr_service_url}/ocr/image",
+                files=files,
+                timeout=30.0
+            )
             
-            logger.warning("DeepSeek-OCR integration pending - using placeholder")
-            return "[OCR text will appear here after DeepSeek-OCR integration]"
-            
-            # TODO: Replace with actual DeepSeek-OCR inference:
-            # inputs = self.tokenizer(image, return_tensors="pt").to(self.device)
-            # outputs = self.model.generate(**inputs)
-            # text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            # return text
+            if response.status_code == 200:
+                result = response.json()
+                return result["text"], result.get("detections", [])
+            else:
+                logger.error(f"OCR service returned error: {response.status_code}")
+                return "", []
             
         except Exception as e:
-            logger.error(f"OCR failed on image: {e}")
-            return ""
+            logger.error(f"OCR failed via Docker service: {e}")
+            return "", []
     
     def extract_from_csv(self, csv_path: str) -> Dict[str, any]:
         """
@@ -194,13 +207,6 @@ class OCREngine:
                 return len(pdf.pages)
         except:
             return 0
-    
-    def cleanup(self) -> None:
-        """Free up model memory."""
-        if self._initialized:
-            deepseek_loader.unload_model()
-            self._initialized = False
-            logger.info("OCR engine cleaned up")
 
 
 # Global instance

@@ -1,12 +1,11 @@
-"""Models package for AI model management."""
+"""Models package for OCR and model management."""
 
-from .deepseek_loader import deepseek_loader, DeepSeekOCRLoader
-from .model_policy import ModelPolicy, TaskType, get_model_config
+from .paddle_loader import paddle_loader, PaddleOCRLoader
+from .model_policy import model_policy, ModelPolicy
 
 __all__ = [
-    "deepseek_loader",
-    "DeepSeekOCRLoader",
+    "paddle_loader",
+    "PaddleOCRLoader",
+    "model_policy",
     "ModelPolicy",
-    "TaskType",
-    "get_model_config",
 ]

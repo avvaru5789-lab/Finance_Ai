@@ -1,0 +1,19 @@
+services:
+  paddleocr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paddleocr-service
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      - PYTHONUNBUFFERED=1
+    mem_limit: 2g
+    cpus: 2
