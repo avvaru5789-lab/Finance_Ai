@@ -28,9 +28,9 @@ class Settings(BaseSettings):
     # HuggingFace Configuration
     huggingface_token: Optional[str] = None
     
-    # DeepSeek-OCR Configuration
-    deepseek_ocr_path: str = "./models/deepseek-ocr"
-    deepseek_ocr_model: str = "deepseek-ai/DeepSeek-OCR"
+    # PaddleOCR Configuration
+    paddleocr_lang: str = "en"  # Language: en, ch, french, german, korean, japan
+    paddleocr_use_gpu: bool = False  # Set to True if you have GPU
     
     # API Configuration
     api_host: str = "0.0.0.0"
@@ -77,7 +77,6 @@ class Settings(BaseSettings):
             self.processed_dir,
             os.path.dirname(self.log_file),
             os.path.dirname(self.cost_log_file),
-            self.deepseek_ocr_path,
         ]
         
         for directory in directories:

@@ -56,9 +56,14 @@ data/demo_statements/*
 data/processed/*
 !data/processed/.gitkeep
 
-# Model files (large files)
-models/deepseek-ocr/*
-!models/deepseek-ocr/.gitkeep
+# Model files (large files) - PaddleOCR downloads models automatically
+.paddleocr/
+models/paddleocr/*
+!models/paddleocr/.gitkeep
+
+# OCR Service
+ocr_service/__pycache__/
+ocr_service/*.pyc
 
 # Test coverage
 htmlcov/
